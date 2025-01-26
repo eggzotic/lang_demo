@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_translate/flutter_translate.dart';
+import 'package:lang_demo/app_state.dart';
+import 'package:lang_demo/default_localization_delegate.dart';
+import 'package:provider/provider.dart';
 
 import 'home_page.dart';
 
 void main() async {
-  final delegate = await LocalizationDelegate.create(
-    fallbackLocale: 'en_US',
-    supportedLocales: [
-      'en_US',
-      'en_GB',
-      'es',
-      // deliberately including this here, without the corresponding asset file,
-      //  `en.json`, to observe the behaviour (in debug-mode)
-      'en',
-    ],
-    basePath: 'assets/i18n/',
+  WidgetsFlutterBinding.ensureInitialized();
+  final appState = AppState();
+  await appState.langState.init();
+  runApp(
+    LocalizedApp(
+      appState.langState.delegate,
+      ChangeNotifierProvider.value(value: appState, child: const MyApp()),
+    ),
   );
-  runApp(LocalizedApp(delegate, const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -25,7 +25,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    var delegate = LocalizedApp.of(context).delegate;
+    final appState = Provider.of<AppState>(context);
+    appState.langState.initContext(context);
+    final delegate = appState.langState.delegate;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Language Demo',
@@ -34,7 +37,14 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(),
-      localizationsDelegates: [delegate],
+      localizationsDelegates: [
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        DefaultMaterialLocalizationDelegate(),
+        DefaultCupertinoLocalizationDelegate(),
+      ],
       supportedLocales: delegate.supportedLocales,
       locale: delegate.currentLocale,
     );
